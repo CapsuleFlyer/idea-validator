@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tools
+  namespace: idea-validator
+  labels: { app: tools }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: tools }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels: { app: tools }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: tools
+          image: registry/tools:dev   # kustomize images: rewrites the registry and tag (commit SHA)
+          ports: [{ containerPort: 8000 }]
+          readinessProbe: { httpGet: { path: /ready, port: 8000 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /health, port: 8000 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:   # starting guesses: replace with numbers from `kubectl top pods`
+            requests: { cpu: 50m, memory: 96Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: tools
+  namespace: idea-validator
+spec:
+  selector: { app: tools }
+  ports: [{ port: 8000, targetPort: 8000 }]

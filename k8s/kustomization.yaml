@@ -1,0 +1,40 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: idea-validator
+resources:
+  - namespace.yaml
+  - verdict-configmap.yaml
+  - gateway.yaml
+  - orchestrator.yaml
+  - tools.yaml
+  - kb.yaml
+  - scorer.yaml
+  - verdict.yaml
+  - agentops.yaml
+  - gateway-extras.yaml
+  - networkpolicy.yaml
+# Data stores and secrets are applied separately for now:
+#   kubectl apply -f k8s/secrets.yaml -f k8s/data-stores.yaml
+# scripts/deploy.sh rewrites this block with the registry and commit SHA on every deploy.
+images:
+  - name: registry/gateway
+    newName: registry/gateway
+    newTag: dev
+  - name: registry/orchestrator
+    newName: registry/orchestrator
+    newTag: dev
+  - name: registry/tools
+    newName: registry/tools
+    newTag: dev
+  - name: registry/kb
+    newName: registry/kb
+    newTag: dev
+  - name: registry/scorer
+    newName: registry/scorer
+    newTag: dev
+  - name: registry/verdict
+    newName: registry/verdict
+    newTag: dev
+  - name: registry/agentops
+    newName: registry/agentops
+    newTag: dev

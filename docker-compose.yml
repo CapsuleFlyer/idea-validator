@@ -1,0 +1,103 @@
+# Local development only. The deployment target is Kubernetes (k8s/).
+# Only the gateway is published to the host. Everything else stays on the internal network.
+# `internal: true` has no internet; only `tools` (M5) is also attached to `egress`, mirroring the NetworkPolicy.
+x-svc: &svc
+  restart: unless-stopped
+  networks: [internal]
+  env_file: [.env]
+
+x-health: &health
+  interval: 10s
+  timeout: 3s
+  retries: 5
+  start_period: 10s
+
+services:
+  gateway:
+    <<: *svc
+    build: services/gateway
+    image: idea-validator/gateway:dev
+    environment: { ORCHESTRATOR_URL: "http://orchestrator:8000" }
+    ports: ["8000:8000"]
+    networks: [internal, edge]
+    depends_on: { orchestrator: { condition: service_healthy } }
+    healthcheck: { <<: *health, test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"] }
+
+  orchestrator:
+    <<: *svc
+    build: services/orchestrator
+    image: idea-validator/orchestrator:dev
+    environment:
+      KB_URL: "http://kb:8000"
+      SCORER_URL: "http://scorer:8000"
+      VERDICT_URL: "http://verdict:8000"
+      AGENTOPS_URL: "http://agentops:8000"
+      STUB_MODE: "true"
+    depends_on: [kb, scorer, verdict, agentops]
+    healthcheck: { <<: *health, test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"] }
+
+  tools:
+    <<: *svc
+    build: services/tools
+    image: idea-validator/tools:dev
+    networks: [internal, egress]   # the only service with a route to the internet
+    healthcheck: { <<: *health, test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"] }
+
+  kb:
+    <<: *svc
+    build: services/kb
+    image: idea-validator/kb:dev
+    healthcheck: { <<: *health, test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"] }
+
+  scorer:
+    <<: *svc
+    build: services/scorer
+    image: idea-validator/scorer:dev
+    healthcheck: { <<: *health, test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/health')"] }
+
+  verdict:
+    <<: *svc
+    build: services/verdict
+    image: idea-validator/verdict:dev
+    environment: { VERDICT_CONFIG: "/config/verdict.json" }
+    volumes: ["./config/verdict.json:/config/verdict.json:ro"]
+    healthcheck: { <<: *health, test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/ready')"] }
+
+  agentops:
+    <<: *svc
+    build: services/agentops
+    image: idea-validator/agentops:dev
+    environment: { TRACE_DIR: "/data/traces" }
+    volumes: ["traces:/data/traces"]
+    healthcheck: { <<: *health, test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/ready')"] }
+
+  # Data stores are started now so later modules (M2, M6) can use them. Not used by the thin slice yet.
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    networks: [internal]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-ideas}
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    healthcheck: { <<: *health, test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-app}"] }
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks: [internal]
+    healthcheck: { <<: *health, test: ["CMD", "redis-cli", "ping"] }
+
+  qdrant:
+    image: qdrant/qdrant:v1.12.5
+    restart: unless-stopped
+    networks: [internal]
+    volumes: ["qdrant:/qdrant/storage"]
+
+networks:
+  internal: { internal: true }
+  egress: {}
+  edge: {}
+
+volumes: { traces: {}, pgdata: {}, qdrant: {} }

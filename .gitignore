@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+node_modules/
+# data, models and traces never go to git (use a release asset or registry for weights)
+*.gguf
+*.safetensors
+*.bin
+data/
+traces/
+eval/results/
+kubeconfig*
+*.kubeconfig
+k8s/secrets.yaml
+.DS_Store

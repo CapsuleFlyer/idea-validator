@@ -1,0 +1,14 @@
+# Template for the scouts (M4). Not in kustomization.yaml until the scouts image exists.
+apiVersion: batch/v1
+kind: CronJob
+metadata: { name: scout-hn, namespace: idea-validator }
+spec:
+  schedule: "0 */6 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - { name: scout, image: registry/scouts:dev, args: ["--source", "hn"] }

@@ -1,0 +1,7 @@
+.git
+.github
+docs
+k8s
+eval
+**/__pycache__
+.env*

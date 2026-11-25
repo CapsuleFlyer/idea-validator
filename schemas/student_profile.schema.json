@@ -1,0 +1,56 @@
+{
+  "title": "Student profile (stored in M2)",
+  "type": "object",
+  "required": [
+    "skills",
+    "hours_per_week",
+    "weeks_available",
+    "team_size",
+    "compute",
+    "goal"
+  ],
+  "properties": {
+    "user_id": {
+      "type": "string"
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hours_per_week": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "weeks_available": {
+      "type": "number",
+      "exclusiveMinimum": 0
+    },
+    "team_size": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "compute": {
+      "enum": [
+        "laptop",
+        "free_gpu",
+        "paid"
+      ]
+    },
+    "goal": {
+      "enum": [
+        "startup",
+        "portfolio",
+        "course_project"
+      ]
+    },
+    "interests": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

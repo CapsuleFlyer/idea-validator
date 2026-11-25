@@ -1,0 +1,58 @@
+# Default deny, then open only what is needed. Needs a CNI that enforces NetworkPolicy (Calico or Cilium).
+# kind's default CNI does NOT enforce it: create the cluster with k8s/kind-config.yaml and install Calico.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: default-deny-all, namespace: idea-validator }
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: allow-dns, namespace: idea-validator }
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector: {}
+          podSelector: { matchLabels: { k8s-app: kube-dns } }
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: allow-intra-namespace, namespace: idea-validator }
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from: [{ podSelector: {} }]
+  egress:
+    - to: [{ podSelector: {} }]
+---
+# The ingress controller may reach the gateway (and only the gateway).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: allow-ingress-to-gateway, namespace: idea-validator }
+spec:
+  podSelector: { matchLabels: { app: gateway } }
+  policyTypes: [Ingress]
+  ingress:
+    - from: [{ namespaceSelector: {} }]
+      ports: [{ protocol: TCP, port: 8000 }]
+---
+# Only M5 (app=tools) may reach the internet. Private ranges stay blocked so it cannot be used to
+# probe the cluster or cloud metadata endpoints.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: { name: allow-internet-for-tools-only, namespace: idea-validator }
+spec:
+  podSelector: { matchLabels: { app: tools } }
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16]

@@ -1,0 +1,55 @@
+{
+  "title": "Dimension score (from a scorer in M9 using M10)",
+  "type": "object",
+  "required": [
+    "dimension",
+    "score",
+    "confidence",
+    "evidence_ids",
+    "reason",
+    "rubric_version",
+    "model"
+  ],
+  "properties": {
+    "dimension": {
+      "enum": [
+        "demand_pain",
+        "competition",
+        "differentiation",
+        "feasibility",
+        "risk",
+        "learning"
+      ]
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "evidence_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "features": {
+      "type": "object"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "rubric_version": {
+      "type": "string"
+    },
+    "model": {
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

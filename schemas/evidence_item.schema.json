@@ -1,0 +1,33 @@
+{
+  "title": "Evidence item (retrieved from M6)",
+  "type": "object",
+  "required": [
+    "evidence_id",
+    "card_id",
+    "quote",
+    "source",
+    "url",
+    "retrieved_at"
+  ],
+  "properties": {
+    "evidence_id": {
+      "type": "string"
+    },
+    "card_id": {
+      "type": "string"
+    },
+    "quote": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string"
+    },
+    "url": {
+      "type": "string"
+    },
+    "retrieved_at": {
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

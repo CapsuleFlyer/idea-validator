@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: verdict
+  namespace: idea-validator
+  labels: { app: verdict }
+spec:
+  replicas: 2
+  selector:
+    matchLabels: { app: verdict }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels: { app: verdict }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: verdict
+          image: registry/verdict:dev   # kustomize images: rewrites the registry and tag (commit SHA)
+          ports: [{ containerPort: 8000 }]
+          env:
+            - { name: VERDICT_CONFIG, value: "/config/verdict.json" }
+          readinessProbe: { httpGet: { path: /ready, port: 8000 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /health, port: 8000 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:   # starting guesses: replace with numbers from `kubectl top pods`
+            requests: { cpu: 50m, memory: 96Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: rules, mountPath: /config, readOnly: true }
+      volumes:
+        - name: rules
+          configMap: { name: verdict-config }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: verdict
+  namespace: idea-validator
+spec:
+  selector: { app: verdict }
+  ports: [{ port: 8000, targetPort: 8000 }]

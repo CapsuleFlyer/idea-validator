@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentops
+  namespace: idea-validator
+  labels: { app: agentops }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: agentops }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels: { app: agentops }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: agentops
+          image: registry/agentops:dev   # kustomize images: rewrites the registry and tag (commit SHA)
+          ports: [{ containerPort: 8000 }]
+          env:
+            - { name: TRACE_DIR, value: "/data/traces" }
+          readinessProbe: { httpGet: { path: /ready, port: 8000 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /health, port: 8000 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:   # starting guesses: replace with numbers from `kubectl top pods`
+            requests: { cpu: 50m, memory: 96Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: traces, mountPath: /data/traces }
+      volumes:
+        - name: traces
+          emptyDir: {}   # TODO: PVC so traces survive pod restarts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentops
+  namespace: idea-validator
+spec:
+  selector: { app: agentops }
+  ports: [{ port: 8000, targetPort: 8000 }]

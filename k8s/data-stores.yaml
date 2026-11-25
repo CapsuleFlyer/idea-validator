@@ -1,0 +1,60 @@
+# Postgres and Redis for M2. TODO: wire them in once the M2 service exists.
+# The password comes from a Secret that is NOT in git: copy secrets.example.yaml to secrets.yaml.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: postgres, namespace: idea-validator }
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector: { matchLabels: { app: postgres } }
+  template:
+    metadata: { labels: { app: postgres } }
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          ports: [{ containerPort: 5432 }]
+          env:
+            - { name: POSTGRES_USER, value: app }
+            - { name: POSTGRES_DB, value: ideas }
+            - { name: PGDATA, value: /var/lib/postgresql/data/pgdata }
+            - name: POSTGRES_PASSWORD
+              valueFrom: { secretKeyRef: { name: app-secrets, key: postgres-password } }
+          readinessProbe: { exec: { command: [pg_isready, -U, app] }, periodSeconds: 5 }
+          livenessProbe: { exec: { command: [pg_isready, -U, app] }, initialDelaySeconds: 20, periodSeconds: 10 }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          volumeMounts: [{ name: data, mountPath: /var/lib/postgresql/data }]
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec: { accessModes: [ReadWriteOnce], resources: { requests: { storage: 1Gi } } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: postgres, namespace: idea-validator }
+spec: { selector: { app: postgres }, ports: [{ port: 5432 }] }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: redis, namespace: idea-validator }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: redis } }
+  template:
+    metadata: { labels: { app: redis } }
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          ports: [{ containerPort: 6379 }]
+          readinessProbe: { exec: { command: [redis-cli, ping] }, periodSeconds: 5 }
+          livenessProbe: { exec: { command: [redis-cli, ping] }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 250m, memory: 128Mi }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: redis, namespace: idea-validator }
+spec: { selector: { app: redis }, ports: [{ port: 6379 }] }

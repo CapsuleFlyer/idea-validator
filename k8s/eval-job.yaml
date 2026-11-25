@@ -1,0 +1,13 @@
+# Evaluation harness (M13). Run by Jenkins nightly. TODO: build jobs/evaluation into an image.
+apiVersion: batch/v1
+kind: Job
+metadata: { name: eval, namespace: idea-validator }
+spec:
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: eval
+          image: registry/eval:dev
+          args: ["--labelled-set", "eval/labelled.jsonl", "--baseline", "eval/baseline.json"]

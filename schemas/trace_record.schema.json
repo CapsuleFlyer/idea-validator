@@ -1,0 +1,76 @@
+{
+  "title": "Trace record (written to M13 for every step)",
+  "type": "object",
+  "required": [
+    "run_id",
+    "step_id",
+    "agent",
+    "kind"
+  ],
+  "properties": {
+    "run_id": {
+      "type": "string"
+    },
+    "step_id": {
+      "type": "integer"
+    },
+    "parent_step": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "agent": {
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "tool_call",
+        "llm_call",
+        "decision"
+      ]
+    },
+    "tool": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "input": {},
+    "output": {},
+    "tokens_in": {
+      "type": "integer"
+    },
+    "tokens_out": {
+      "type": "integer"
+    },
+    "cost_usd": {
+      "type": "number"
+    },
+    "latency_ms": {
+      "type": "integer"
+    },
+    "retries": {
+      "type": "integer"
+    },
+    "model": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cache_hit": {
+      "type": "boolean"
+    },
+    "error": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ts": {
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

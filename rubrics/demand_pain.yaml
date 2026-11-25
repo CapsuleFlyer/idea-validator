@@ -1,0 +1,14 @@
+# Versioned rubric. A change means a new version and a new evaluation (never edit a released version).
+dimension: demand_pain
+version: 3
+scale: 0-5            # higher is better for the student
+anchors:
+  5: "Five or more independent sources on 2+ platforms show the same recurring problem, with growth in the last 6 months."
+  4: "TODO: write this anchor"
+  3: "Two or three sources show the problem, no clear growth."
+  2: "TODO: write this anchor"
+  1: "A single weak or old mention."
+  0: "No evidence of the problem."
+features: [n_sources, n_platforms, complaint_count, trend_growth]
+output_schema: score, confidence, evidence_ids, reason
+examples: []          # TODO: at least one worked example per level

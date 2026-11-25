@@ -1,0 +1,8 @@
+# TODO: write anchors 0-5 and at least one worked example per level. Copy the shape of demand_pain.yaml.
+dimension: differentiation
+version: 0
+scale: 0-5
+anchors: {}
+features: []
+output_schema: score, confidence, evidence_ids, reason
+examples: []

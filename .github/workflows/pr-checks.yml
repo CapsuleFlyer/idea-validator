@@ -1,0 +1,47 @@
+name: pr-checks
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -r requirements-dev.txt
+      - run: ruff check .
+      - name: Unit tests (verdict engine first, it is the core of the grade)
+        run: |
+          (cd services/verdict && python -m pytest -q)
+          (cd services/tools && python -m pytest -q)
+          python -m pytest tests -q
+      # TODO when they exist: component tests for the UI, retrieval quality gate (eval/retrieval),
+      # mypy on services. Make each a required check on main.
+
+  docker:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [gateway, orchestrator, tools, kb, scorer, verdict, agentops]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t ${{ matrix.service }}:${{ github.sha }} services/${{ matrix.service }}
+      - uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: "${{ matrix.service }}:${{ github.sha }}"
+          exit-code: "1"
+          severity: "CRITICAL"
+
+  manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz
+          sudo mv kubeconform /usr/local/bin/
+      - name: Validate rendered manifests
+        run: kubectl kustomize k8s | kubeconform -strict -summary -ignore-missing-schemas

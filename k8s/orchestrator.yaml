@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orchestrator
+  namespace: idea-validator
+  labels: { app: orchestrator }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: orchestrator }
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: { maxUnavailable: 0, maxSurge: 1 }
+  template:
+    metadata:
+      labels: { app: orchestrator }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: orchestrator
+          image: registry/orchestrator:dev   # kustomize images: rewrites the registry and tag (commit SHA)
+          ports: [{ containerPort: 8000 }]
+          env:
+            - { name: KB_URL, value: "http://kb:8000" }
+            - { name: SCORER_URL, value: "http://scorer:8000" }
+            - { name: VERDICT_URL, value: "http://verdict:8000" }
+            - { name: AGENTOPS_URL, value: "http://agentops:8000" }
+            - { name: STUB_MODE, value: "true" }
+          readinessProbe: { httpGet: { path: /ready, port: 8000 }, periodSeconds: 5 }
+          livenessProbe: { httpGet: { path: /health, port: 8000 }, initialDelaySeconds: 10, periodSeconds: 10 }
+          resources:   # starting guesses: replace with numbers from `kubectl top pods`
+            requests: { cpu: 50m, memory: 96Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orchestrator
+  namespace: idea-validator
+spec:
+  selector: { app: orchestrator }
+  ports: [{ port: 8000, targetPort: 8000 }]
